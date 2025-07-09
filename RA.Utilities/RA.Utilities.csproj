@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Version>0.0.1</Version>
+    <Authors>Regis Antunes</Authors>
+    <Description>Utilities package</Description>
+    <PackageReleaseNotes>Stopwatch and output resources</PackageReleaseNotes>
+	<PackageId>RegisAntunes.Utilities</PackageId>
+  </PropertyGroup>
+
+</Project>
