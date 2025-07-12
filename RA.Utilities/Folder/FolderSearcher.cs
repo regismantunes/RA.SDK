@@ -24,12 +24,12 @@ namespace RA.Utilities.Folder
         public string LastPath { get; private set; } = string.Empty;
         private readonly object _locker = new();
 
-        public void Search(Action<string> onFind)
+        public async Task SearchAsync(Action<string> onFind)
         {
-            Search(Options, onFind);
+            await SearchAsync(Options, onFind);
         }
 
-        public void Search(FolderSearcherOptions options, Action<string> onFind)
+        public async Task SearchAsync(FolderSearcherOptions options, Action<string> onFind)
         {
             ArgumentNullException.ThrowIfNull(onFind, nameof(onFind));
 
@@ -44,7 +44,7 @@ namespace RA.Utilities.Folder
             try
             {
                 Options = options ?? throw new ArgumentNullException(nameof(options));
-                ExecuteSearch(onFind);
+                await ExecuteSearchAsync(onFind);
             }
             finally
             {
@@ -52,7 +52,7 @@ namespace RA.Utilities.Folder
             }
         }
 
-        private void ExecuteSearch(Action<string> onFind)
+        private async Task ExecuteSearchAsync(Action<string> onFind)
         { 
             var currentUser = Identity.GetCurrentSID();
             var countTask = 0;
@@ -66,6 +66,8 @@ namespace RA.Utilities.Folder
 
             void searchInFolder(string path)
             {
+                LastPath = path;
+
                 if (Options.FindForFiles)
                 {
                     try
@@ -123,7 +125,7 @@ namespace RA.Utilities.Folder
             searchInFolder(Options.InitialPath);
 
             while (countTask > 0)
-                Thread.Sleep(100);
+                await Task.Delay(100);
         }
     }
 }
