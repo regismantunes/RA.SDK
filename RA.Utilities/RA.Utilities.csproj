@@ -4,10 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Version>0.0.1</Version>
+    <Version>0.1.0</Version>
     <Authors>Regis Antunes</Authors>
     <Description>Utilities package</Description>
-    <PackageReleaseNotes>Stopwatch and output resources</PackageReleaseNotes>
+    <PackageReleaseNotes>Includes TaskExtensions with the DelayOrCompleted method to wait for a delay or task completion, whichever comes first
+	Includes FolderSearcher to search for folders and files without error for unautorized path.</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Utilities</PackageId>
   </PropertyGroup>
 
