@@ -1,9 +1,5 @@
-﻿using RA.Utilities.Extensions;
-using RA.Utilities.Output;
-using RA.Utilities.Windows;
+﻿using RA.Utilities.Windows;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -12,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace RA.Utilities.Folder
 {
-    public class FolderSearcher(FolderSearcherOptions options)
+    public class FolderSearcher(FolderSearcherOptions? options)
     {
         public FolderSearcher()
-            : this(new FolderSearcherOptions())
+            : this(null)
         { }
 
-        public FolderSearcherOptions Options { get; private set; } = options ?? throw new ArgumentNullException(nameof(options));
+        public FolderSearcherOptions? Options { get; private set; } = options;
 
         public bool IsRunning { get; private set; } = false;
         public string LastPath { get; private set; } = string.Empty;
@@ -31,8 +27,9 @@ namespace RA.Utilities.Folder
 
         public async Task SearchAsync(FolderSearcherOptions options, Action<string> onFind)
         {
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
             ArgumentNullException.ThrowIfNull(onFind, nameof(onFind));
-
+            
             lock (_locker)
             {
                 if (IsRunning)
@@ -43,7 +40,7 @@ namespace RA.Utilities.Folder
 
             try
             {
-                Options = options ?? throw new ArgumentNullException(nameof(options));
+                Options = options;
                 await ExecuteSearchAsync(onFind);
             }
             finally
@@ -53,7 +50,7 @@ namespace RA.Utilities.Folder
         }
 
         private async Task ExecuteSearchAsync(Action<string> onFind)
-        { 
+        {
             var currentUser = Identity.GetCurrentSID();
             var countTask = 0;
             var enumerationOptions = new EnumerationOptions
@@ -67,6 +64,9 @@ namespace RA.Utilities.Folder
             void searchInFolder(string path)
             {
                 LastPath = path;
+
+                if (Options.FindForDirectories)
+                    onFind(path);
 
                 if (Options.FindForFiles)
                 {
@@ -106,9 +106,6 @@ namespace RA.Utilities.Folder
                         if (folder.EndsWith("\\..") ||
                             folder.EndsWith("\\."))
                             continue;
-
-                        if (Options.FindForDirectories)
-                            onFind(folder);
 
                         Interlocked.Increment(ref countTask);
 

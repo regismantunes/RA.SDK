@@ -3,24 +3,22 @@ using System.Security.AccessControl;
 
 namespace RA.Utilities.Folder
 {
-    public class FolderSearcherOptions
+    public record FolderSearcherOptions
     {
-        public string InitialPath { get; set; }
+        public required string InitialPath { get; init; }
 
-        public int Taken { get; set; }
+        public FileSystemRights? FileSystemRights { get; init; }
 
-        public FileSystemRights? FileSystemRights { get; set; }
+        public FileAttributes AttributesToSkip { get; init; } = FileAttributes.None;
 
-        public FileAttributes AttributesToSkip { get; set; } = FileAttributes.None;
+        public bool ReturnSpecialDirectories { get; init; } = true;
 
-        public bool ReturnSpecialDirectories { get; set; } = true;
+        public string DirectorySearchPattern { get; init; } = "*";
 
-        public string DirectorySearchPattern { get; set; } = "*";
+        public string FileSearchPattern { get; init; } = "*";
 
-        public string FileSearchPattern { get; set; } = "*";
+        public bool FindForFiles { get; init; } = true;
 
-        public bool FindForFiles { get; set; } = true;
-
-        public bool FindForDirectories { get; set; } = true;
+        public bool FindForDirectories { get; init; } = false;
     }
 }
