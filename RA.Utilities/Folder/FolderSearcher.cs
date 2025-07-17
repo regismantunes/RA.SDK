@@ -128,7 +128,7 @@ namespace RA.Utilities.Folder
                 searchInSubFolders(path);
             }
 
-            var semaphore = new SemaphoreSlim(1, 1);
+            var semaphore = new SemaphoreSlim(0, 1);
             void searchInSubFolders(string path)
             {
                 try
