@@ -8,23 +8,55 @@ using System.Threading.Tasks;
 
 namespace RA.Utilities.Folder
 {
+    /// <summary>
+    /// Searches for files and directories in a specified folder based on the provided options.
+    /// </summary>
     public class FolderSearcher(FolderSearcherOptions? options)
     {
+        /// <summary>
+        /// Initializes the FolderSearcher without options. The options should be set on SearchAsync method.
+        /// </summary>
         public FolderSearcher()
             : this(null)
         { }
 
+        /// <summary>
+        /// Options setted for the folder searcher.
+        /// </summary>
         public FolderSearcherOptions? Options { get; private set; } = options;
 
+        /// <summary>
+        /// Inicates whether the search is currently running.
+        /// </summary>
         public bool IsRunning { get; private set; } = false;
+
+        /// <summary>
+        /// Indicates the last path that was searched. This can be used to follow the search progress.
+        /// </summary>
         public string LastPath { get; private set; } = string.Empty;
+        
         private readonly object _locker = new();
 
+        /// <summary>
+        /// Initiates a search for files and directories based on the current options.
+        /// </summary>
+        /// <param name="onFind">
+        /// Action to be called when a file or directory is found. The path of the found item will be passed as an argument.
+        /// </param>
         public async Task SearchAsync(Action<string> onFind)
         {
             await SearchAsync(Options, onFind);
         }
 
+        /// <summary>
+        /// Initiates a search for files and directories based on the provided options.
+        /// </summary>
+        /// <param name="options">
+        /// New options for the folder searcher.
+        /// </param>
+        /// <param name="onFind">
+        /// Action to be called when a file or directory is found. The path of the found item will be passed as an argument.
+        /// </param>
         public async Task SearchAsync(FolderSearcherOptions options, Action<string> onFind)
         {
             ArgumentNullException.ThrowIfNull(options, nameof(options));
@@ -96,6 +128,7 @@ namespace RA.Utilities.Folder
                 searchInSubFolders(path);
             }
 
+            var semaphore = new SemaphoreSlim(1, 1);
             void searchInSubFolders(string path)
             {
                 try
@@ -108,11 +141,12 @@ namespace RA.Utilities.Folder
                             continue;
 
                         Interlocked.Increment(ref countTask);
-
                         Task.Run(() =>
                         {
                             searchInFolder(folder);
                             Interlocked.Decrement(ref countTask);
+                            if (countTask == 0)
+                                semaphore.Release();
                         });
                     }
                 }
@@ -121,8 +155,7 @@ namespace RA.Utilities.Folder
 
             searchInFolder(Options.InitialPath);
 
-            while (countTask > 0)
-                await Task.Delay(100);
+            await semaphore.WaitAsync();
         }
     }
 }

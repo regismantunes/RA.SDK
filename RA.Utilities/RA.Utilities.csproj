@@ -12,4 +12,8 @@
 	<PackageId>RegisAntunes.Utilities</PackageId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Extensions\TaskExtensions.cs~RF8a2f62a.TMP" />
+  </ItemGroup>
+
 </Project>

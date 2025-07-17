@@ -3,9 +3,12 @@ using System.Collections.Generic;
 
 namespace RA.Utilities.Output
 {
+    /// <summary>
+    /// Implements the IOutput interface to provide console output functionality.
+    /// </summary>
     public class ConsoleOutput : IOutput
     {
-        public Stack<int> _linesPosition = new();
+        private readonly Stack<int> _linesPosition = new();
 
         public void Clear()
         {

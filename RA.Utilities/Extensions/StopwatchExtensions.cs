@@ -4,6 +4,12 @@ namespace RA.Utilities.Extensions
 {
     public static class StopwatchExtensions
     {
+        /// <summary>
+        /// Returns a string representation of the elapsed time in milliseconds, seconds, or minutes.
+        /// </summary>
+        /// <param name="stopwatch">
+        /// The instance to get the elapsed time from.
+        /// </param>
         public static string GetElapsedTimeText(this Stopwatch stopwatch)
         {
             var totalTime = (double)stopwatch.ElapsedMilliseconds;
