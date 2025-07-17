@@ -4,16 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Regis Antunes</Authors>
     <Description>Utilities package</Description>
-    <PackageReleaseNotes>Includes TaskExtensions with the DelayOrCompleted method to wait for a delay or task completion, whichever comes first
-	Includes FolderSearcher to search for folders and files without error for unautorized path.</PackageReleaseNotes>
+    <PackageReleaseNotes>Included summary and comments to help the library usage</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Utilities</PackageId>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="Extensions\TaskExtensions.cs~RF8a2f62a.TMP" />
-  </ItemGroup>
 
 </Project>
