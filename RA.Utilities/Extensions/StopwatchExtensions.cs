@@ -19,15 +19,17 @@ namespace RA.Utilities.Extensions
             {
                 totalTime /= 1000d;
                 timeType = "seconds";
+
+                if (totalTime > 59d)
+                {
+                    totalTime /= 60d;
+                    timeType = "minutes";
+                }
+
+                return $"{totalTime:N3} {timeType}";
             }
 
-            if (totalTime > 59d)
-            {
-                totalTime /= 60d;
-                timeType = "minutes";
-            }
-
-            return $"{totalTime:N3} {timeType}";
+            return $"{totalTime} {timeType}";
         }
     }
 }
