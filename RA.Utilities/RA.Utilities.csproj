@@ -4,10 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <Authors>Regis Antunes</Authors>
     <Description>Utilities package</Description>
-    <PackageReleaseNotes>Fixed FolderSearch to wait the end of research before end</PackageReleaseNotes>
+    <PackageReleaseNotes>Created a README file</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Utilities</PackageId>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
