@@ -10,11 +10,12 @@
 		<PackageReleaseNotes>Windows focused features from RegisAntuens.Utilities was migrated to this package</PackageReleaseNotes>
 		<PackageId>RegisAntunes.Utilities.Windows</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 	<ItemGroup>
-		<None Include="README.md" />
+		<None Include="README.md" Pack="true" PackagePath="\"/>
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="RegisAntunes.Utilities" Version="0.2.0" />
+	  <PackageReference Include="RegisAntunes.Utilities" Version="0.2.1" />
 	</ItemGroup>
 </Project>
