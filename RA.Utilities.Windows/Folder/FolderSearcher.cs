@@ -1,6 +1,10 @@
 ﻿using RA.Utilities.Windows.Security;
 using System;
+using System.Collections.ObjectModel;
+using System.Data;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
@@ -34,7 +38,12 @@ namespace RA.Utilities.Windows.Folder
         /// Indicates the last path that was searched. This can be used to follow the search progress.
         /// </summary>
         public string LastPath { get; private set; } = string.Empty;
-        
+
+        /// <summary>
+        /// List of errors that occurred during the search. Each item contains the path where the error occurred and the exception that was thrown.
+        /// </summary>
+        public ObservableCollection<(string, Exception)> SearchErrors { get; } = [];
+
         private readonly object _locker = new();
 
         /// <summary>
@@ -83,19 +92,57 @@ namespace RA.Utilities.Windows.Folder
 
         private async Task ExecuteSearchAsync(Action<string> onFind)
         {
-            var currentUser = Identity.GetCurrentSID();
+            SearchErrors.Clear();
             var countTask = 0;
-            var enumerationOptions = new EnumerationOptions
+            var userSidForFiles = Options.SecurityOptionsForFiles?.UserSID ?? Identity.GetCurrentSID();
+            var userSidForDirectories = Options.SecurityOptionsForDirectories?.UserSID ?? Identity.GetCurrentSID();
+            var enumerationOptionsForFiles = new EnumerationOptions
             {
                 RecurseSubdirectories = false,
-                AttributesToSkip = Options.AttributesToSkip,
+                AttributesToSkip = Options.SecurityOptionsForFiles?.AttributesToSkip ?? FileAttributes.None,
+                IgnoreInaccessible = true,
+                ReturnSpecialDirectories = Options.ReturnSpecialDirectories
+            };
+            var enumerationOptionsForDirectories = new EnumerationOptions
+            {
+                RecurseSubdirectories = false,
+                AttributesToSkip = Options.SecurityOptionsForDirectories?.AttributesToSkip ?? FileAttributes.None,
                 IgnoreInaccessible = true,
                 ReturnSpecialDirectories = Options.ReturnSpecialDirectories
             };
 
+            bool rulesAreApplyed(CommonObjectSecurity objectSecurity, SecurityOptions? securityOptions)
+            {
+                if (securityOptions is null)
+                    return true;
+
+                var rules = objectSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
+                foreach (FileSystemAccessRule rule in rules)
+                {
+                    if (rule.IdentityReference.Value != userSidForFiles)
+                        continue;
+
+                    if (securityOptions.FileSystemRights.HasValue &&
+                        ((rule.FileSystemRights & securityOptions.FileSystemRights) != securityOptions.FileSystemRights ||
+                        rule.AccessControlType != securityOptions.AccessControlType))
+                        continue;
+                    
+                    return true;
+                }
+
+                return false;
+            }
+
             void searchInFolder(string path)
             {
                 LastPath = path;
+
+                var includeFolder = rulesAreApplyed(
+                    new DirectoryInfo(path).GetAccessControl(),
+                    Options.SecurityOptionsForDirectories);
+                
+                if (!includeFolder)
+                    return;
 
                 if (Options.FindForDirectories)
                     onFind(path);
@@ -104,25 +151,21 @@ namespace RA.Utilities.Windows.Folder
                 {
                     try
                     {
-                        var files = Directory.GetFiles(path, Options.FileSearchPattern, enumerationOptions);
-                        foreach (var file in files)
-                        {
-                            var fileInfo = new FileInfo(file);
-                            var rules = fileInfo.GetAccessControl()
-                                                .GetAccessRules(true, true, typeof(SecurityIdentifier));
-                            foreach (FileSystemAccessRule rule in rules)
-                            {
-                                if ((!Options.FileSystemRights.HasValue ||
-                                    (rule.IdentityReference.Value == currentUser && (rule.FileSystemRights & Options.FileSystemRights) == Options.FileSystemRights)) &&
-                                    rule.AccessControlType == AccessControlType.Allow)
-                                {
-                                    onFind(file);
-                                    break;
-                                }
-                            }
-                        }
+                        var files = Directory.GetFiles(path, Options.FileSearchPattern, enumerationOptionsForFiles);
+                        foreach (var item in files
+                            .Where(file => rulesAreApplyed(
+                                new FileInfo(file).GetAccessControl(),
+                                Options.SecurityOptionsForFiles)))
+                            onFind(item);
                     }
-                    catch { }
+                    catch (UnauthorizedAccessException)
+                    {
+                        // Ignore unauthorized access
+                    }
+                    catch (Exception ex)
+                    { 
+                        SearchErrors.Add((path, ex));
+                    }
                 }
 
                 searchInSubFolders(path);
@@ -133,7 +176,7 @@ namespace RA.Utilities.Windows.Folder
             {
                 try
                 {
-                    var folders = Directory.GetDirectories(path, Options.DirectorySearchPattern, enumerationOptions);
+                    var folders = Directory.GetDirectories(path, Options.DirectorySearchPattern, enumerationOptionsForFiles);
                     foreach (var folder in folders)
                     {
                         if (folder.EndsWith("\\..") ||
@@ -150,7 +193,14 @@ namespace RA.Utilities.Windows.Folder
                         });
                     }
                 }
-                catch { }
+                catch (UnauthorizedAccessException)
+                {
+                    // Ignore unauthorized access
+                }
+                catch (Exception ex)
+                {
+                    SearchErrors.Add((path, ex));
+                }
             }
 
             searchInFolder(Options.InitialPath);

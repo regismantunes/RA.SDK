@@ -14,14 +14,14 @@ namespace RA.Utilities.Windows.Folder
         public required string InitialPath { get; init; }
 
         /// <summary>
-        /// Indicates the rights of the files and directories to be searched.
+        /// Indicates the roles for search with security parameters for files
         /// </summary>
-        public FileSystemRights? FileSystemRights { get; init; }
+        public SecurityOptions? SecurityOptionsForFiles { get; init; }
 
         /// <summary>
-        /// Indicates the attributes of the files and directories to be skipped during the search.
+        /// Indicates the roles for search with security parameters for directories
         /// </summary>
-        public FileAttributes AttributesToSkip { get; init; } = FileAttributes.None;
+        public SecurityOptions? SecurityOptionsForDirectories { get; init; }
 
         /// <summary>
         /// Indicates whether special directories (like "System Volume Information") should be included in the search.
