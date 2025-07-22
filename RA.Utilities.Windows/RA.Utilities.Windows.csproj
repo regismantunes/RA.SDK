@@ -4,7 +4,7 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Version>0.0.1</Version>
+		<Version>0.1.0</Version>
 		<Authors>Regis Antunes</Authors>
 		<Description>Utilities package to run on Windows only</Description>
 		<PackageReleaseNotes>Windows focused features from RegisAntuens.Utilities was migrated to this package</PackageReleaseNotes>

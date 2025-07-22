@@ -1,10 +1,7 @@
 ﻿using RA.Utilities.Windows.Security;
 using System;
-using System.Collections.ObjectModel;
-using System.Data;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
@@ -17,6 +14,11 @@ namespace RA.Utilities.Windows.Folder
     /// </summary>
     public class FolderSearcher(FolderSearcherOptions? options)
     {
+        private readonly Dictionary<string, Exception> _searchErrors = [];
+        private Action<string, Exception>? _onError;
+        private Action<string>? _onFind;
+        private readonly object _locker = new();
+
         /// <summary>
         /// Initializes the FolderSearcher without options. The options should be set on SearchAsync method.
         /// </summary>
@@ -42,9 +44,7 @@ namespace RA.Utilities.Windows.Folder
         /// <summary>
         /// List of errors that occurred during the search. Each item contains the path where the error occurred and the exception that was thrown.
         /// </summary>
-        public ObservableCollection<(string, Exception)> SearchErrors { get; } = [];
-
-        private readonly object _locker = new();
+        public IReadOnlyDictionary<string, Exception> SearchErrors => _searchErrors;
 
         /// <summary>
         /// Initiates a search for files and directories based on the current options.
@@ -66,7 +66,7 @@ namespace RA.Utilities.Windows.Folder
         /// <param name="onFind">
         /// Action to be called when a file or directory is found. The path of the found item will be passed as an argument.
         /// </param>
-        public async Task SearchAsync(FolderSearcherOptions options, Action<string> onFind)
+        public async Task SearchAsync(FolderSearcherOptions options, Action<string> onFind, Action<string,Exception>? onError = null)
         {
             ArgumentNullException.ThrowIfNull(options, nameof(options));
             ArgumentNullException.ThrowIfNull(onFind, nameof(onFind));
@@ -82,19 +82,23 @@ namespace RA.Utilities.Windows.Folder
             try
             {
                 Options = options;
-                await ExecuteSearchAsync(onFind);
+                _onFind = onFind;
+                _onError = onError;
+                await ExecuteSearchAsync();
             }
             finally
             {
                 IsRunning = false;
+                _onFind = null;
+                _onError = null;
             }
         }
 
-        private async Task ExecuteSearchAsync(Action<string> onFind)
+        private async Task ExecuteSearchAsync()
         {
-            SearchErrors.Clear();
+            _searchErrors.Clear();
             var countTask = 0;
-            var userSidForFiles = Options.SecurityOptionsForFiles?.UserSID ?? Identity.GetCurrentSID();
+            var userSidForFiles = Options!.SecurityOptionsForFiles?.UserSID ?? Identity.GetCurrentSID();
             var userSidForDirectories = Options.SecurityOptionsForDirectories?.UserSID ?? Identity.GetCurrentSID();
             var enumerationOptionsForFiles = new EnumerationOptions
             {
@@ -111,60 +115,37 @@ namespace RA.Utilities.Windows.Folder
                 ReturnSpecialDirectories = Options.ReturnSpecialDirectories
             };
 
-            bool rulesAreApplyed(CommonObjectSecurity objectSecurity, SecurityOptions? securityOptions)
-            {
-                if (securityOptions is null)
-                    return true;
-
-                var rules = objectSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
-                foreach (FileSystemAccessRule rule in rules)
-                {
-                    if (rule.IdentityReference.Value != userSidForFiles)
-                        continue;
-
-                    if (securityOptions.FileSystemRights.HasValue &&
-                        ((rule.FileSystemRights & securityOptions.FileSystemRights) != securityOptions.FileSystemRights ||
-                        rule.AccessControlType != securityOptions.AccessControlType))
-                        continue;
-                    
-                    return true;
-                }
-
-                return false;
-            }
-
             void searchInFolder(string path)
             {
                 LastPath = path;
 
-                var includeFolder = rulesAreApplyed(
-                    new DirectoryInfo(path).GetAccessControl(),
-                    Options.SecurityOptionsForDirectories);
+                bool includeFolder = false;
+                ExecuteWithErrorTreatment(path, () =>
+                    includeFolder = RulesAreApplyed(
+                        new DirectoryInfo(path).GetAccessControl(),
+                        Options.SecurityOptionsForDirectories,
+                        userSidForDirectories)
+                );
                 
                 if (!includeFolder)
                     return;
 
                 if (Options.FindForDirectories)
-                    onFind(path);
+                    _onFind!(path);
 
                 if (Options.FindForFiles)
                 {
-                    try
+                    var files = Directory.GetFiles(path, Options.FileSearchPattern, enumerationOptionsForFiles);
+                    foreach (var file in files)
                     {
-                        var files = Directory.GetFiles(path, Options.FileSearchPattern, enumerationOptionsForFiles);
-                        foreach (var item in files
-                            .Where(file => rulesAreApplyed(
+                        ExecuteWithErrorTreatment(file, () =>
+                        {
+                            if (RulesAreApplyed(
                                 new FileInfo(file).GetAccessControl(),
-                                Options.SecurityOptionsForFiles)))
-                            onFind(item);
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        // Ignore unauthorized access
-                    }
-                    catch (Exception ex)
-                    { 
-                        SearchErrors.Add((path, ex));
+                                Options.SecurityOptionsForFiles,
+                                userSidForFiles))
+                                _onFind!(file);
+                        });
                     }
                 }
 
@@ -174,38 +155,66 @@ namespace RA.Utilities.Windows.Folder
             var semaphore = new SemaphoreSlim(0, 1);
             void searchInSubFolders(string path)
             {
-                try
+                var folders = Directory.GetDirectories(path, Options.DirectorySearchPattern, enumerationOptionsForFiles);
+                foreach (var folder in folders)
                 {
-                    var folders = Directory.GetDirectories(path, Options.DirectorySearchPattern, enumerationOptionsForFiles);
-                    foreach (var folder in folders)
-                    {
-                        if (folder.EndsWith("\\..") ||
-                            folder.EndsWith("\\."))
-                            continue;
+                    if (folder.EndsWith("\\..") ||
+                        folder.EndsWith("\\."))
+                        continue;
 
-                        Interlocked.Increment(ref countTask);
-                        Task.Run(() =>
-                        {
-                            searchInFolder(folder);
-                            Interlocked.Decrement(ref countTask);
-                            if (countTask == 0)
-                                semaphore.Release();
-                        });
-                    }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    // Ignore unauthorized access
-                }
-                catch (Exception ex)
-                {
-                    SearchErrors.Add((path, ex));
+                    Interlocked.Increment(ref countTask);
+                    Task.Run(() =>
+                    {
+                        searchInFolder(folder);
+                        Interlocked.Decrement(ref countTask);
+                        if (countTask == 0)
+                            semaphore.Release();
+                    });
                 }
             }
 
             searchInFolder(Options.InitialPath);
 
             await semaphore.WaitAsync();
+        }
+
+        private static bool RulesAreApplyed(CommonObjectSecurity objectSecurity, SecurityOptions? securityOptions, string userSid)
+        {
+            if (securityOptions is null)
+                return true;
+
+            var rules = objectSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
+            foreach (FileSystemAccessRule rule in rules)
+            {
+                if (rule.IdentityReference.Value != userSid)
+                    continue;
+
+                if (securityOptions.FileSystemRights.HasValue &&
+                    ((rule.FileSystemRights & securityOptions.FileSystemRights) != securityOptions.FileSystemRights ||
+                    rule.AccessControlType != securityOptions.AccessControlType))
+                    continue;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private void ExecuteWithErrorTreatment(string path, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Ignore unauthorized access
+            }
+            catch (Exception ex)
+            {
+                _searchErrors.Add(path, ex);
+                _onError?.Invoke(path, ex);
+            }
         }
     }
 }
