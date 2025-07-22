@@ -1,4 +1,4 @@
-﻿using RA.Utilities.Windows;
+﻿using RA.Utilities.Windows.Security;
 using System;
 using System.IO;
 using System.Security.AccessControl;
@@ -6,7 +6,7 @@ using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RA.Utilities.Folder
+namespace RA.Utilities.Windows.Folder
 {
     /// <summary>
     /// Searches for files and directories in a specified folder based on the provided options.

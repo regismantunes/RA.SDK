@@ -10,14 +10,8 @@ A general-purpose utility library for .NET, consolidating a set of time-saving e
 - **Task Extensions**
   - `DelayOrCompleted()` — Extension for `System.Threading.Tasks.Task` to help await tasks with a timeout or delay option.
 
-- **Folder Searcher**
-  - Deep directory and file search with flexible filtering (names, attributes, rights) and control over recursion.
-
 - **Output Abstractions**
   - Console output interface and extensible abstractions for writing and managing output. (Console implementation included.)
-
-- **Identity Utilities**
-  - `GetCurrentSID()` — Static helper to get the current Windows session user's SID.
 
 All features are reliably tested with [xUnit](https://xunit.net/).
 
@@ -56,9 +50,6 @@ Task myTask = ...;
 await myTask.DelayOrCompleted(1000); // milliseconds
 ```
 
-**FolderSearcher**
-Full example: [FolderSizeSearcher](https://github.com/regismantunes/FolderSizeSearcher)
-
 **Output**
 ```csharp
 using RegisAntunes.Utilities.Output;
@@ -66,14 +57,6 @@ using RegisAntunes.Utilities.Output;
 IOutput output = OutputFactory.GetOutput(OutpytType.Console);
 output.WriteLine("Hello World!");
 output.ClearLine();
-```
-
-**Identity.GetCurrentSID**
-```csharp
-using RegisAntunes.Utilities.Windows;
-
-string sid = Identity.GetCurrentSID();
-Console.WriteLine($"Current SID: {sid}");
 ```
 
 ## License

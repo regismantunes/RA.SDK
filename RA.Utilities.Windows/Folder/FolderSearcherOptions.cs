@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Security.AccessControl;
 
-namespace RA.Utilities.Folder
+namespace RA.Utilities.Windows.Folder
 {
     /// <summary>
     /// Provides options for configuring the folder searcher.

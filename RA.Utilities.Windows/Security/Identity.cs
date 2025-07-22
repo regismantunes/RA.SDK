@@ -1,6 +1,6 @@
 ﻿using System.Security.Principal;
 
-namespace RA.Utilities.Windows
+namespace RA.Utilities.Windows.Security
 {
     public static class Identity
     {
