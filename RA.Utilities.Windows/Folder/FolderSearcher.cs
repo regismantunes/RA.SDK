@@ -1,4 +1,5 @@
 ﻿using RA.Utilities.Windows.Security;
+using RA.Utilities.ErrorHandling;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -114,18 +115,23 @@ namespace RA.Utilities.Windows.Folder
                 IgnoreInaccessible = true,
                 ReturnSpecialDirectories = Options.ReturnSpecialDirectories
             };
+            var customErrorHandling = new CustomErrorHandling<string>(
+                _onError,
+                typeof(UnauthorizedAccessException)
+            );
 
             void searchInFolder(string path)
             {
                 LastPath = path;
 
-                bool includeFolder = false;
-                ExecuteWithErrorTreatment(path, () =>
+                var includeFolder = false;
+
+                customErrorHandling.TryExecute(() => 
                     includeFolder = RulesAreApplyed(
                         new DirectoryInfo(path).GetAccessControl(),
                         Options.SecurityOptionsForDirectories,
                         userSidForDirectories)
-                );
+                , path);
                 
                 if (!includeFolder)
                     return;
@@ -138,14 +144,14 @@ namespace RA.Utilities.Windows.Folder
                     var files = Directory.GetFiles(path, Options.FileSearchPattern, enumerationOptionsForFiles);
                     foreach (var file in files)
                     {
-                        ExecuteWithErrorTreatment(file, () =>
+                        customErrorHandling.TryExecute(() =>
                         {
                             if (RulesAreApplyed(
                                 new FileInfo(file).GetAccessControl(),
                                 Options.SecurityOptionsForFiles,
                                 userSidForFiles))
                                 _onFind!(file);
-                        });
+                        }, file);
                     }
                 }
 
@@ -198,23 +204,6 @@ namespace RA.Utilities.Windows.Folder
             }
 
             return false;
-        }
-
-        private void ExecuteWithErrorTreatment(string path, Action action)
-        {
-            try
-            {
-                action();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Ignore unauthorized access
-            }
-            catch (Exception ex)
-            {
-                _searchErrors.Add(path, ex);
-                _onError?.Invoke(path, ex);
-            }
         }
     }
 }

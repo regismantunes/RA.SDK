@@ -4,18 +4,18 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Version>0.1.0</Version>
+		<Version>0.1.1</Version>
 		<Authors>Regis Antunes</Authors>
-		<Description>Utilities package to run on Windows only</Description>
+		<Description>Updated to use new ErrorHandling features from RegisAntunes.Utilities</Description>
 		<PackageReleaseNotes>Windows focused features from RegisAntuens.Utilities was migrated to this package</PackageReleaseNotes>
 		<PackageId>RegisAntunes.Utilities.Windows</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\"/>
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="RegisAntunes.Utilities" Version="0.2.1" />
+		<PackageReference Include="RegisAntunes.Utilities" Version="0.3.0" />
 	</ItemGroup>
 </Project>
