@@ -4,15 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
     <Authors>Regis Antunes</Authors>
     <Description>Utilities package</Description>
-    <PackageReleaseNotes>Features with windows only compatibility was migrated to RegisAntunes.Utilities.Windows. Included MIT license.</PackageReleaseNotes>
+    <PackageReleaseNotes>Created ErrorHandling namespace with features to make easier errors tratments</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Utilities</PackageId>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
-	<None Include="README.md" Pack="true" PackagePath="\"/>
+	<None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
