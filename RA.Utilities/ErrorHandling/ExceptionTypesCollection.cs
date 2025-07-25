@@ -27,7 +27,7 @@ namespace RA.Utilities.ErrorHandling
         {
             ThrowIfNotExceptionType(exceptionType);
 
-            return _exceptionTypes.Any(type => type.IsInstanceOfType(exceptionType);
+            return _exceptionTypes.Any(type => type.IsInstanceOfType(exceptionType));
         }
 
         public void Clear()
