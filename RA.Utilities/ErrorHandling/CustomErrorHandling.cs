@@ -2,7 +2,7 @@
 
 namespace RA.Utilities.ErrorHandling
 {
-    public class CustomErrorHandling<T>(Action<T, Exception>? onError = null, params Type[] ignoreException)
+    public class CustomErrorHandling<T>(Action<T, Exception> onError, params Type[] ignoreException)
     {
         private readonly Action<T, Exception>? _onError = onError;
         private readonly ExceptionTypesCollection _exceptions = new(ignoreException);
@@ -23,7 +23,7 @@ namespace RA.Utilities.ErrorHandling
         }
     }
 
-    public class CustomErrorHandling(Action<Exception> onError, params Type[] ignoreException)
+    public class CustomErrorHandling(Action<Exception>? onError = null, params Type[] ignoreException)
     {
         private readonly Action<Exception>? _onError = onError;
         private readonly ExceptionTypesCollection _exceptions = new(ignoreException);
