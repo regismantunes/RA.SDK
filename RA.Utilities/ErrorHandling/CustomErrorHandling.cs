@@ -2,12 +2,12 @@
 
 namespace RA.Utilities.ErrorHandling
 {
-    public class CustomErrorHandling<T>(Action<T, Exception> onError, params Type[] ignoreException)
+    public sealed class CustomErrorHandling<T>(Action<T, Exception> onError, params Type[] ignoreException)
+        : CustomErrorHandlingBase(ignoreException)
     {
         private readonly Action<T, Exception>? _onError = onError;
-        private readonly ExceptionTypesCollection _exceptions = new(ignoreException);
 
-        public void TryExecute(Action action, T exceptionParameter)
+        public bool TryExecute(Action action, T exceptionParameter)
         {
             try
             {
@@ -15,20 +15,23 @@ namespace RA.Utilities.ErrorHandling
             }
             catch (Exception ex)
             {
-                if (_exceptions.Contains(ex.GetType()))
-                    return;
-                
-                _onError?.Invoke(exceptionParameter, ex);
+                if (!IsIgnored(ex.GetType()))
+                {
+                    _onError?.Invoke(exceptionParameter, ex);
+                    return false;
+                }
             }
+
+            return true;
         }
     }
 
-    public class CustomErrorHandling(Action<Exception>? onError = null, params Type[] ignoreException)
+    public sealed class CustomErrorHandling(Action<Exception>? onError = null, params Type[] ignoreException)
+        : CustomErrorHandlingBase(ignoreException)
     {
         private readonly Action<Exception>? _onError = onError;
-        private readonly ExceptionTypesCollection _exceptions = new(ignoreException);
 
-        public void TryExecute(Action action)
+        public bool TryExecute(Action action)
         {
             try
             {
@@ -36,11 +39,14 @@ namespace RA.Utilities.ErrorHandling
             }
             catch (Exception ex)
             {
-                if (_exceptions.Contains(ex.GetType()))
-                    return;
-
-                _onError?.Invoke(ex);
+                if (!IsIgnored(ex.GetType()))
+                {
+                    _onError?.Invoke(ex);
+                    return false;
+                }
             }
+
+            return true;
         }
     }
 }

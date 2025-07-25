@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace RA.Utilities.ErrorHandling
 {
-    internal class ExceptionTypesCollection(params Type[] exceptionTypes)
+    internal sealed class ExceptionTypesCollection(params Type[] exceptionTypes)
     {
         private readonly List<Type> _exceptionTypes = ValidateExceptionTypes(exceptionTypes);
 
@@ -28,6 +28,16 @@ namespace RA.Utilities.ErrorHandling
             ThrowIfNotExceptionType(exceptionType);
 
             return _exceptionTypes.Any(type => type.IsInstanceOfType(exceptionType);
+        }
+
+        public void Clear()
+        {
+            _exceptionTypes.Clear();
+        }
+
+        public IReadOnlyList<Type> ToList()
+        {
+            return _exceptionTypes.AsReadOnly();
         }
 
         private static void ThrowIfNotExceptionType(Type type)
