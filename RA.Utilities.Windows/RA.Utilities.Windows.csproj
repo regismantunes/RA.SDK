@@ -6,8 +6,8 @@
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Version>0.1.1</Version>
 		<Authors>Regis Antunes</Authors>
-		<Description>Updated to use new ErrorHandling features from RegisAntunes.Utilities</Description>
-		<PackageReleaseNotes>Windows focused features from RegisAntuens.Utilities was migrated to this package</PackageReleaseNotes>
+		<Description>Utilities package to run on Windows only</Description>
+		<PackageReleaseNotes>Updated to use new ErrorHandling features from RegisAntunes.Utilities</PackageReleaseNotes>
 		<PackageId>RegisAntunes.Utilities.Windows</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>

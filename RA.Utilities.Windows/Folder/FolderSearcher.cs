@@ -115,18 +115,18 @@ namespace RA.Utilities.Windows.Folder
                 IgnoreInaccessible = true,
                 ReturnSpecialDirectories = Options.ReturnSpecialDirectories
             };
-            var customErrorHandling = new CustomErrorHandling<string>(
-                _onError,
+            var errorHandler = new CustomErrorHandler<string>(
+                _onError!,
                 typeof(UnauthorizedAccessException)
             );
-
+            
             void searchInFolder(string path)
             {
                 LastPath = path;
 
                 var includeFolder = false;
 
-                customErrorHandling.TryExecute(() => 
+                errorHandler.TryExecute(() => 
                     includeFolder = RulesAreApplyed(
                         new DirectoryInfo(path).GetAccessControl(),
                         Options.SecurityOptionsForDirectories,
@@ -144,7 +144,7 @@ namespace RA.Utilities.Windows.Folder
                     var files = Directory.GetFiles(path, Options.FileSearchPattern, enumerationOptionsForFiles);
                     foreach (var file in files)
                     {
-                        customErrorHandling.TryExecute(() =>
+                        errorHandler.TryExecute(() =>
                         {
                             if (RulesAreApplyed(
                                 new FileInfo(file).GetAccessControl(),
