@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace RA.Utilities.ErrorHandling
 {
     /// <summary>
-    /// A base class for custom error handling that allows ignoring specific exception types.
+    /// A base class for custom error handler that allows ignoring specific exception types.
     /// </summary>
     /// <param name="ignoreException">Types of exceptions to ignore</param>
-    public abstract class CustomErrorHandlingBase(params Type[] ignoreException)
+    public abstract class CustomErrorHandlerBase(params Type[] ignoreException)
     {
         private readonly ExceptionTypesCollection _ignoreExceptions = new(ignoreException);
 

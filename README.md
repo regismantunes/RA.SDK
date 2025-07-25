@@ -1,6 +1,6 @@
 # RA.SDK Solution
 
-Welcome to the **RA.SDK** repository! This solution provides utilities packaged as a NuGet library (`RegisAntunes.Utilities`) along with a comprehensive suite of tests. Below, you'll find guidance about the structure, purpose, and usage of the contained projects.
+Welcome to the **RA.SDK** repository! This solution provides utilities packaged as NuGet libraries `RegisAntunes.Utilities` and `RegisAntunes.Utilities.Windows` along some tests. Below, you'll find guidance about the structure, purpose, and usage of the contained projects.
 
 ## Table of Contents
 
@@ -15,9 +15,9 @@ Welcome to the **RA.SDK** repository! This solution provides utilities packaged 
 
 ## About the Project
 
-The **RegisAntunes.Utilities** NuGet package offers a collection of time-saving utilities for developers with general-purpose utility classes and extensions for .NET, designed to centralize, improve, and simplify common development tasks. Utilities have been consolidated from multiple projects with a focus on reusability and extensibility. All features are tested with [xUnit](https://xunit.net/) to ensure reliability.
+The **RegisAntunes.Utilities** and **RegisAntunes.Utilities.Windows** NuGet package offers a collection of time-saving utilities for developers with general-purpose utility classes and extensions for .NET, designed to centralize, improve, and simplify common development tasks. The test project use [xUnit](https://xunit.net/) to ensure reliability, fill free to sugest new implementations.
 
-## Features
+## **RegisAntunes.Utilities** Features
 
 ### 1. Stopwatch Extensions
 
@@ -30,13 +30,14 @@ The **RegisAntunes.Utilities** NuGet package offers a collection of time-saving 
 - **TaskExtensions**:  
   - Adds `DelayOrCompleted()` to `System.Threading.Tasks.Task`
   - Helper for easy waiting for task completion or delay.
-
-### 3. Folder Searcher
-
-- **FolderSearcher**:  
-  - Powerful class for recursively searching files and directories.
-  - Flexible API to filter results by file name, attributes, and rights.
-  - Options to control recursion and filtering.
+  
+### 3. Error Handling
+- **CustomErrorHandler**:
+  - A class to help you to use defalt errors treatments inside a method or class.
+  
+ - **ActionExtensions**:
+   - Adds `TryExecute` to `System.Action`
+   - Try to execute some action and handle with the error if it occours
 
 ### 4. Output Abstractions
 
@@ -44,7 +45,16 @@ The **RegisAntunes.Utilities** NuGet package offers a collection of time-saving 
   - Extensible interfaces and implementations for outputting information.
   - Console output currently implemented, other output types can be added.
 
-### 5. Identity Utilities
+## **RegisAntunes.Utilities.Windows** Features
+
+### 1. Folder Searcher
+
+- **FolderSearcher**:  
+  - Powerful class for recursively searching files and directories.
+  - Flexible API to filter results by file name, attributes, and rights.
+  - Options to control recursion and filtering.
+
+### 2. Identity Utilities
 
 - **Identity.GetCurrentSID**:  
   - Static helper to retrieve the SID of the current Windows user session.
@@ -54,8 +64,9 @@ The **RegisAntunes.Utilities** NuGet package offers a collection of time-saving 
 ```
 RA.SDK/
 │
-├── RegisAntunes.Utilities/        # NuGet utility library
-├── RegisAntunes.Utilities.Tests/  # xUnit test project
+├── RegisAntunes.Utilities/        	# NuGet utility library
+├── RegisAntunes.Utilities.Tests/  	# xUnit test project
+├── RegisAntunes.Utilities.Windows/	# NuGet utility library
 └── README.md
 ```
 
@@ -93,10 +104,18 @@ Inside your project:
 dotnet add package RegisAntunes.Utilities
 ```
 
+```bash
+dotnet add package RegisAntunes.Utilities.Windows
+```
+
 Or with NuGet Package Manager:
 
 ```powershell
 Install-Package RegisAntunes.Utilities
+```
+
+```powershell
+Install-Package RegisAntunes.Utilities.Windows
 ```
 
 ## Usage Examples
@@ -120,9 +139,48 @@ Task myTask = ...; // any Task
 await myTask.DelayOrCompleted(1000); //miliseconds
 ```
 
-**FolderSearcher**
-A usage example was impleemted by this repository:
-https://github.com/regismantunes/FolderSizeSearcher
+**CustomErrorHandler**
+```csharp
+using RegisAntunes.Utilities.ErrorHandling;
+
+var errorHandler = new CustomErrorHandler((Exception ex) => {
+	// Custom error handling logic
+},typeof(IgnoredException1), typeof(IgnoredException2),...);
+
+bool noErrorExecution = errorHandler.TryExecute(() => {
+	// Code that might throw exceptions
+});
+```
+
+**CustomErrorHandler<T>**
+```csharp
+using RegisAntunes.Utilities.ErrorHandling;
+
+var errorHandler = new CustomErrorHandler<string>((string parameter, Exception ex) => {
+	// Custom error handling logic
+},typeof(IgnoredException1), typeof(IgnoredException2),...);
+
+bool noErrorExecution = errorHandler.TryExecute(() => {
+	// Code that might throw exceptions
+}, parameter);
+```
+
+**ActionExtensions**
+```csharp
+using RegisAntunes.Utilities.ErrorHandling;
+
+new Action(() => {
+	// Your action code here
+}).TryExecute((Exception ex) => {
+	// Custom error handling logic
+}, typeof(IgnoredException1), typeof(IgnoredException2), ...);
+
+new Action(() => {
+	// Your action code here
+}).TryExecute<string>((string parameter, Exception ex) => {
+	// Custom error handling logic
+}, parameter, typeof(IgnoredException1), typeof(IgnoredException2), ...);
+```
 
 **Output**
 ```csharp
@@ -133,6 +191,10 @@ output.WriteLine("Hello World!");
 output.WriteLine("IOutput usage example!");
 output.ClearLine();
 ```
+
+**FolderSearcher**
+A usage example was impleemted by this repository:
+https://github.com/regismantunes/FolderSizeSearcher
 
 **Identity.GetCurrentSID**
 ```csharp

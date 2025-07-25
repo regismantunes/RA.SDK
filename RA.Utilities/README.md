@@ -31,6 +31,49 @@ Install-Package RegisAntunes.Utilities
 
 ## Usage Examples
 
+**CustomErrorHandler**
+```csharp
+using RegisAntunes.Utilities.ErrorHandling;
+
+var errorHandler = new CustomErrorHandler((Exception ex) => {
+	// Custom error handling logic
+},typeof(IgnoredException1), typeof(IgnoredException2),...);
+
+bool noErrorExecution = errorHandler.TryExecute(() => {
+	// Code that might throw exceptions
+});
+```
+
+**CustomErrorHandler<T>**
+```csharp
+using RegisAntunes.Utilities.ErrorHandling;
+
+var errorHandler = new CustomErrorHandler<string>((string parameter, Exception ex) => {
+	// Custom error handling logic
+},typeof(IgnoredException1), typeof(IgnoredException2),...);
+
+bool noErrorExecution = errorHandler.TryExecute(() => {
+	// Code that might throw exceptions
+}, parameter);
+```
+
+**ActionExtensions**
+```csharp
+using RegisAntunes.Utilities.ErrorHandling;
+
+new Action(() => {
+	// Your action code here
+}).TryExecute((Exception ex) => {
+	// Custom error handling logic
+}, typeof(IgnoredException1), typeof(IgnoredException2), ...);
+
+new Action(() => {
+	// Your action code here
+}).TryExecute<string>((string parameter, Exception ex) => {
+	// Custom error handling logic
+}, parameter, typeof(IgnoredException1), typeof(IgnoredException2), ...);
+```
+
 **StopwatchExtensions**
 ```csharp
 using System.Diagnostics;

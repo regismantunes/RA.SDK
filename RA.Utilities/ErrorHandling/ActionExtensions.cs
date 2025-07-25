@@ -27,7 +27,7 @@ namespace RA.Utilities.ErrorHandling
         /// <returns>Returns true if the action executed successfully, false if an exception occurred that was not ignored.</returns>
         public static bool TryExecute<T>(this Action action, T exceptionParameter, Action<T,Exception> onError, params Type[] ignoreException)
         {
-            return new CustomErrorHandling<T>(onError, ignoreException)
+            return new CustomErrorHandler<T>(onError, ignoreException)
                 .TryExecute(action, exceptionParameter);
         }
     }

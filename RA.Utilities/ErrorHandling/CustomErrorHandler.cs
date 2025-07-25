@@ -3,12 +3,12 @@
 namespace RA.Utilities.ErrorHandling
 {
     /// <summary>
-    /// Class for custom error handling that allows to provide a default error statement, with a generic parameter that help to identify the error origin, and ignoring specific exception types.
+    /// Class for custom error handler that allows to provide a default error statement, with a generic parameter that help to identify the error origin, and ignoring specific exception types.
     /// </summary>
     /// <param name="onError">The action to be handled if some not ignored exception occours</param>
     /// <param name="ignoreException">Types of exceptions to ignore. If the exception type is not in this list, it will be handled by the onError action.</param>
-    public sealed class CustomErrorHandling<T>(Action<T, Exception> onError, params Type[] ignoreException)
-        : CustomErrorHandlingBase(ignoreException)
+    public sealed class CustomErrorHandler<T>(Action<T, Exception> onError, params Type[] ignoreException)
+        : CustomErrorHandlerBase(ignoreException)
     {
         private readonly Action<T, Exception>? _onError = onError;
 
@@ -38,12 +38,12 @@ namespace RA.Utilities.ErrorHandling
     }
 
     /// <summary>
-    /// Class for custom error handling that allows to provide a default error statement and ignoring specific exception types.
+    /// Class for custom error handler that allows to provide a default error statement and ignoring specific exception types.
     /// </summary>
     /// <param name="onError">The action to be handled if some not ignored exception occours</param>
     /// <param name="ignoreException">Types of exceptions to ignore. If the exception type is not in this list, it will be handled by the onError action.</param>
     public sealed class CustomErrorHandling(Action<Exception>? onError = null, params Type[] ignoreException)
-        : CustomErrorHandlingBase(ignoreException)
+        : CustomErrorHandlerBase(ignoreException)
     {
         private readonly Action<Exception>? _onError = onError;
 
