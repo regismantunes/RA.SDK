@@ -4,10 +4,10 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Version>0.1.1</Version>
+		<Version>0.1.2</Version>
 		<Authors>Regis Antunes</Authors>
 		<Description>Utilities package to run on Windows only</Description>
-		<PackageReleaseNotes>Updated to use new ErrorHandling features from RegisAntunes.Utilities</PackageReleaseNotes>
+		<PackageReleaseNotes>Updated to use new version from RegisAntunes.Utilities with fixed identification of ignored exception type</PackageReleaseNotes>
 		<PackageId>RegisAntunes.Utilities.Windows</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -16,6 +16,6 @@
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="RegisAntunes.Utilities" Version="0.3.0" />
+		<PackageReference Include="RegisAntunes.Utilities" Version="0.3.1" />
 	</ItemGroup>
 </Project>
