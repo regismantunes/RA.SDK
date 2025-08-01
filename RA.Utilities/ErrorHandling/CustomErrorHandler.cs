@@ -42,7 +42,7 @@ namespace RA.Utilities.ErrorHandling
     /// </summary>
     /// <param name="onError">The action to be handled if some not ignored exception occours</param>
     /// <param name="ignoreException">Types of exceptions to ignore. If the exception type is not in this list, it will be handled by the onError action.</param>
-    public sealed class CustomErrorHandling(Action<Exception>? onError = null, params Type[] ignoreException)
+    public sealed class CustomErrorHandler(Action<Exception>? onError = null, params Type[] ignoreException)
         : CustomErrorHandlerBase(ignoreException)
     {
         private readonly Action<Exception>? _onError = onError;

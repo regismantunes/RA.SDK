@@ -4,10 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Version>0.3.1</Version>
+    <Version>0.3.2</Version>
     <Authors>Regis Antunes</Authors>
     <Description>Utilities package</Description>
-    <PackageReleaseNotes>Fixed failure to identify the error in the list of ignored types</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed class name CustomErrorHandling to CustomErrorHandler</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Utilities</PackageId>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
