@@ -1,6 +1,7 @@
 # RA.SDK Solution
 
 Welcome to the **RA.SDK** repository! This solution provides utilities packaged as NuGet libraries `RegisAntunes.Utilities` and `RegisAntunes.Utilities.Windows` along some tests. Below, you'll find guidance about the structure, purpose, and usage of the contained projects.
+Additionally, it includes the `RA.Console.DependecyInjection` console framework for building DI-driven, attribute-based console applications.
 
 ## Table of Contents
 
@@ -16,6 +17,8 @@ Welcome to the **RA.SDK** repository! This solution provides utilities packaged 
 ## About the Project
 
 The **RegisAntunes.Utilities** and **RegisAntunes.Utilities.Windows** NuGet package offers a collection of time-saving utilities for developers with general-purpose utility classes and extensions for .NET, designed to centralize, improve, and simplify common development tasks. The test project use [xUnit](https://xunit.net/) to ensure reliability, fill free to sugest new implementations.
+
+The solution also contains **RA.Console.DependecyInjection**, a lightweight console framework that discovers commands via attributes, binds arguments automatically (with optional custom builders), integrates with Microsoft.Extensions.DependencyInjection, and provides a built-in help system.
 
 ## **RegisAntunes.Utilities** Features
 
@@ -59,6 +62,29 @@ The **RegisAntunes.Utilities** and **RegisAntunes.Utilities.Windows** NuGet pack
 - **Identity.GetCurrentSID**:  
   - Static helper to retrieve the SID of the current Windows user session.
 
+## **RA.Console.DependecyInjection** Features
+
+### 1. ConsoleAppBuilder & DI
+
+- **ConsoleAppBuilder**:  
+  - Configure `Services`, register assemblies with `AddAssembly<T>()` / `AddAssemblies(...)`, and `Build()` an `IConsoleApp`.
+  - Optional `UseOptimizedInitialization()` to load only requested command path.
+
+### 2. Attribute-based Commands
+
+- **Attributes**:  
+  - `CommandAttribute` / `CommandAsyncAttribute` and generic variants to plug custom args builders.
+  - `ParameterAttribute` to rename parameters and control case-sensitivity.
+
+### 3. Argument Binding
+
+- **DefaultArgsBuilder** handles `--param value` and positional args.  
+- Implement `IArgsBuilder` / `IArgsBuilderAsync` for custom parsing/validation and reference the builder via generic command attributes.
+
+### 4. Integrated Help
+
+- Built-in default help via `UseDefaultHelpResources()` or customize with `IHelpCommand` / `IHelpCommandAsync`.
+
 ## Project Structure
 
 ```
@@ -67,6 +93,7 @@ RA.SDK/
 ├── RegisAntunes.Utilities/        	# NuGet utility library
 ├── RegisAntunes.Utilities.Tests/  	# xUnit test project
 ├── RegisAntunes.Utilities.Windows/	# NuGet utility library
+├── RA.Console.DependecyInjection/	# Console DI framework
 └── README.md
 ```
 
@@ -202,6 +229,19 @@ using RegisAntunes.Utilities.Windows;
 
 string sid = Identity.GetCurrentSID();
 Console.WriteLine($"Current SID: {sid}");
+```
+
+**RA.Console.DependecyInjection (quick start)**
+```csharp
+using RA.Console.DependecyInjection;
+using System.Reflection;
+
+var app = new ConsoleAppBuilder(args)
+    .UseDefaultHelpResources()
+    .AddAssembly(Assembly.GetExecutingAssembly())
+    .Build();
+
+return await app.RunAsync();
 ```
 
 ## Contributing
