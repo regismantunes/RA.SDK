@@ -8,45 +8,43 @@ namespace RA.Console.DependecyInjection
 {
     public class ConsoleApp : IConsoleApp
     {
-        private readonly ConsoleAppStartInfo _startInfo;
-
+        private string? StartCommand { get; }
+        private string[] StartArgs { get; }
+        private bool StartWithHelpCommand { get; }
+        private HelpCommandInitializationInfo? HelpCommandInitializationInfo { get; }
+        private IDictionary<string, (MethodInfo, CommandAttribute)> Commands { get; }
         public IServiceProvider Services { get; }
 
         internal ConsoleApp(ConsoleAppStartInfo startInfo)
         {
-            _startInfo = startInfo ?? throw new ArgumentNullException(nameof(startInfo));
+            ArgumentNullException.ThrowIfNull(startInfo, nameof(startInfo));
+            StartCommand = startInfo.Command;
+            StartArgs = startInfo.Args;
+            StartWithHelpCommand = startInfo.IsHelpCommand;
+            HelpCommandInitializationInfo = startInfo.HelpCommandInitializationInfo;
+            Commands = startInfo.Commands;
             Services = startInfo.ServiceProvider;
         }
 
         public async Task<int> RunAsync(CancellationToken cancellationToken = default)
         {
             Current = this;
-            if (_startInfo.IsHelpCommand)
-            {
-                if (_startInfo.HelpCommandInitializationInfo == null)
-                    throw new InvalidOperationException("Help command initialization info is not defined.");
+            if (StartWithHelpCommand)
+                return await RunHelpCommandAsync(cancellationToken);
 
-                var helpCommandInitializationInfo = _startInfo.HelpCommandInitializationInfo.Value;
-                if (helpCommandInitializationInfo.HelpCommand == null)
-                    throw new InvalidOperationException("Help command is not defined.");
-
-                var helpCommandObject = Services.GetRequiredService(helpCommandInitializationInfo.HelpCommand);
-                if (helpCommandObject is IHelpCommand helpCommand)
-                    return helpCommand.Execute(helpCommandInitializationInfo.HelpCommandParameter);
-                else if (helpCommandObject is IHelpCommandAsync helpCommandAsync)
-                    return await helpCommandAsync.ExecuteAsync(helpCommandInitializationInfo.HelpCommandParameter, cancellationToken);
-                else
-                    throw new InvalidOperationException("Help command does not implement a valid interface.");
-            }
-
-            if (_startInfo.Command is null)
+            if (StartCommand is null)
                 throw new InvalidOperationException("Command is not defined.");
 
-            (var commandMethod, var commandAttribute) = _startInfo.Commands.TryGetValue(_startInfo.Command, out var methodPair)
-                ? methodPair
-                : throw new InvalidOperationException($"Command '{_startInfo.Command}' not found.");
+            return await RunCommandAsync(StartCommand, StartArgs, cancellationToken);
+        }
 
-            var parameters = await BuildParametersAsync(commandMethod, commandAttribute, _startInfo.Args, cancellationToken);
+        public async Task<int> RunCommandAsync(string command, string[] args, CancellationToken cancellationToken = default)
+        {
+            (var commandMethod, var commandAttribute) = Commands.TryGetValue(command, out var methodPair)
+                ? methodPair
+                : throw new InvalidOperationException($"Command '{command}' not found.");
+
+            var parameters = await BuildParametersAsync(commandMethod, commandAttribute, args, cancellationToken);
             var commandHandler = Services.GetRequiredService(commandMethod.DeclaringType!);
 
             if (typeof(CommandAsyncAttribute).IsAssignableFrom(commandAttribute.GetType()))
@@ -54,7 +52,25 @@ namespace RA.Console.DependecyInjection
             else if (typeof(CommandAttribute).IsAssignableFrom(commandAttribute.GetType()))
                 return (int)commandMethod.Invoke(commandHandler, parameters);
             else
-                throw new InvalidOperationException($"Command attribute for command '{_startInfo.Command}' is of an unknown type.");
+                throw new InvalidOperationException($"Command attribute for command '{command}' is of an unknown type.");
+        }
+
+        public async Task<int> RunHelpCommandAsync(CancellationToken cancellationToken = default)
+        {
+            if (HelpCommandInitializationInfo == null)
+                throw new InvalidOperationException("Help command initialization info is not defined.");
+
+            var helpCommandInitializationInfo = HelpCommandInitializationInfo.Value;
+            if (helpCommandInitializationInfo.HelpCommand == null)
+                throw new InvalidOperationException("Help command is not defined.");
+
+            var helpCommandObject = Services.GetRequiredService(helpCommandInitializationInfo.HelpCommand);
+            if (helpCommandObject is IHelpCommand helpCommand)
+                return helpCommand.Execute(helpCommandInitializationInfo.HelpCommandParameter);
+            else if (helpCommandObject is IHelpCommandAsync helpCommandAsync)
+                return await helpCommandAsync.ExecuteAsync(helpCommandInitializationInfo.HelpCommandParameter, cancellationToken);
+            else
+                throw new InvalidOperationException("Help command does not implement a valid interface.");
         }
 
         private async Task<object?[]> BuildParametersAsync(MethodInfo methodInfo, CommandAttribute commandAttribute, string[] args, CancellationToken cancellationToken)
