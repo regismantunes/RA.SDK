@@ -2,6 +2,7 @@
 using RA.Console.DependecyInjection.Args;
 using RA.Console.DependecyInjection.Attributes;
 using RA.Console.DependecyInjection.HelpCommand;
+using RA.Console.DependecyInjection.Middleware;
 using System.Reflection;
 
 namespace RA.Console.DependecyInjection
@@ -12,12 +13,26 @@ namespace RA.Console.DependecyInjection
         public IServiceCollection Services { get; } = new ServiceCollection();
         
         #region Assemblies
-        private IList<Assembly> Assemblies { get; } = [];
+        private record AssemblyOptions
+        {
+            public required Assembly Assembly { get; init; }
+            public bool LoadHelpCommand { get; init; }
+            public bool LoadCommands { get; init; }
+            public bool LoadMiddlewares { get; init; }
+        }
+
+        private IList<AssemblyOptions> Assemblies { get; } = [];
         
         public ConsoleAppBuilder AddAssembly(Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
-            Assemblies.Add(assembly);
+            Assemblies.Add(new AssemblyOptions
+            { 
+                Assembly = assembly,
+                LoadHelpCommand = true,
+                LoadCommands = true,
+                LoadMiddlewares = true
+            });
             return this;
         }
 
@@ -29,6 +44,84 @@ namespace RA.Console.DependecyInjection
             ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
             foreach (var assembly in assemblies)
                 AddAssembly(assembly);
+            return this;
+        }
+
+        public ConsoleAppBuilder AddHelpCommandFromAssembly(Assembly assembly)
+        {
+            ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
+            Assemblies.Add(new AssemblyOptions
+            {
+                Assembly = assembly,
+                LoadHelpCommand = true,
+                LoadCommands = false,
+                LoadMiddlewares = false
+            });
+            return this;
+        }
+
+        public ConsoleAppBuilder AddCommandsFromAssembly(Assembly assembly)
+        {
+            ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
+            Assemblies.Add(new AssemblyOptions
+            {
+                Assembly = assembly,
+                LoadHelpCommand = false,
+                LoadCommands = true,
+                LoadMiddlewares = true
+            });
+            return this;
+        }
+
+        public ConsoleAppBuilder AddMiddlewaresFromAssembly(Assembly assembly)
+        {
+            ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
+            Assemblies.Add(new AssemblyOptions
+            {
+                Assembly = assembly,
+                LoadHelpCommand = false,
+                LoadCommands = false,
+                LoadMiddlewares = true
+            });
+            return this;
+        }
+
+        public ConsoleAppBuilder AddHelpCommandFromAssembly<T>()
+            => AddHelpCommandFromAssembly(typeof(T).Assembly);
+
+        public ConsoleAppBuilder AddCommandsFromAssembly<T>()
+            => AddCommandsFromAssembly(typeof(T).Assembly);
+
+        public ConsoleAppBuilder AddMiddlewaresFromAssembly<T>()
+            => AddMiddlewaresFromAssembly(typeof(T).Assembly);
+
+        public ConsoleAppBuilder AddCommandsFromAssemblies(params IEnumerable<Assembly> assemblies)
+        {
+            ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
+            foreach (var assembly in assemblies)
+                AddCommandsFromAssembly(assembly);
+            return this;
+        }
+
+        public ConsoleAppBuilder AddMiddlewaresFromAssemblies(params IEnumerable<Assembly> assemblies)
+        {
+            ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
+            foreach (var assembly in assemblies)
+                AddMiddlewaresFromAssembly(assembly);
+            return this;
+        }
+        #endregion
+
+        #region Registers
+        public ConsoleAppBuilder UserMiddleware<T>() where T : class, ICommandMiddleware
+        {
+            Services.AddSingleton<ICommandMiddleware, T>();
+            return this;
+        }
+
+        public ConsoleAppBuilder UseMeddleware(ICommandMiddleware middleware)
+        {
+            Services.AddSingleton(middleware);
             return this;
         }
         #endregion
@@ -190,7 +283,7 @@ namespace RA.Console.DependecyInjection
         }
 
         private void LoadServicesFromAssembly(
-            Assembly assembly,
+            AssemblyOptions assemblyOptions,
             bool loadHelpCommandInitializationInfo,
             bool loadHelpCommand,
             bool loadCommonCommands,
@@ -199,89 +292,110 @@ namespace RA.Console.DependecyInjection
             string? command = null)
         {
             commandMethods = [];
-            var assemblyClasses = assembly.GetTypes()
+            var assemblyClasses = assemblyOptions.Assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract);
-            foreach (var assemblyClass in assemblyClasses)
+            foreach (var classType in assemblyClasses)
             {
                 var registerClassAsService = false;
-                if (loadHelpCommand)
-                {
-                    if (typeof(IHelpCommand).IsAssignableFrom(assemblyClass) ||
-                        typeof(IHelpCommandAsync).IsAssignableFrom(assemblyClass))
-                    {
-                        if (helpCommandInitializationInfo.HelpCommand is not null)
-                            throw new MultipleCommandsDefinedException($"Multiple HelpCommand classes found.");
+                if (assemblyOptions.LoadHelpCommand && loadHelpCommand)
+                    LoadHelpCommandFromClass(classType, ref helpCommandInitializationInfo, ref registerClassAsService);
 
-                        helpCommandInitializationInfo.HelpCommand = assemblyClass;
-                        registerClassAsService = true;
-                    }
-                }
+                if (assemblyOptions.LoadCommands && (loadCommonCommands || loadHelpCommandInitializationInfo))
+                    LoadCommandsFromClass(
+                        assemblyOptions.Assembly,
+                        classType,
+                        loadHelpCommandInitializationInfo,
+                        loadCommonCommands,
+                        command,
+                        ref helpCommandInitializationInfo,
+                        ref registerClassAsService,
+                        commandMethods);
 
-                if (loadCommonCommands ||
-                    loadHelpCommandInitializationInfo)
-                {
-                    foreach (var method in assemblyClass.GetMethods())
-                    {
-                        var commandsAttributes = method.GetCustomAttributes(inherit: true)
-                            .OfType<CommandAttribute>()
-                            .Where(ca => loadHelpCommandInitializationInfo ||
-                                         command is null ||
-                                         ca.Commands.Contains(command, StringComparer.OrdinalIgnoreCase));
-                        if (!commandsAttributes.Any())
-                            continue;
-                        if (command is not null)
-                        {
-                            if (commandMethods.Count > 0)
-                                throw new MultipleCommandsDefinedException(
-                                    $"Multiple commands found for '{command}' in assembly '{assembly.FullName}'.");
-                            if (commandsAttributes.Count() > 1)
-                                throw new MultipleCommandsDefinedException(
-                                    $"Multiple commands found for '{command}' in method '{method.Name}' of class '{assemblyClass.FullName}'.");
-                        }
-
-                        if (loadHelpCommandInitializationInfo)
-                            helpCommandInitializationInfo.HelpCommandParameter
-                                .AddRange(commandsAttributes
-                                            .Where(ca => !ca.Hide)
-                                            .Select(ca => new CommandInfo(ca.Commands, ca.Description, ca.Example, ca.Group, ca.Order))
-                                    );
-
-                        if (loadCommonCommands)
-                        {
-                            registerClassAsService = true;
-                            commandMethods.AddRange(commandsAttributes
-                                .Where(ca => command is null ||
-                                             ca.Commands.Contains(command, StringComparer.OrdinalIgnoreCase))
-                                .Select(ca => (method, ca))
-                            );
-                            if (command is not null)
-                            {
-                                var commandAttributeType = commandsAttributes
-                                    .Single()
-                                    .GetType();
-                                if (commandAttributeType.IsGenericType)
-                                {
-                                    var argsBuilderType = commandAttributeType
-                                        .GetGenericArguments()
-                                        .FirstOrDefault()
-                                        ?? throw new InvalidOperationException($"ArgsBuilder type not found in CommandAttribute for command '{command}'.");
-                                    Services.AddSingleton(argsBuilderType);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (loadCommonCommands && command is null) //Load all args builders only if not searching for a specific command
-                {
-                    if (typeof(IArgsBuilder).IsAssignableFrom(assemblyClass) ||
-                        typeof(IArgsBuilderAsync).IsAssignableFrom(assemblyClass))
-                        registerClassAsService = true;
-                }
+                //Load all args builders only if not searching for a specific command
+                if (assemblyOptions.LoadCommands && loadCommonCommands && command is null &&
+                    (typeof(IArgsBuilder).IsAssignableFrom(classType) || typeof(IArgsBuilderAsync).IsAssignableFrom(classType)))
+                    registerClassAsService = true;
+                
+                if (assemblyOptions.LoadMiddlewares && 
+                    typeof(ICommandMiddleware).IsAssignableFrom(classType))
+                    registerClassAsService = true;
 
                 if (registerClassAsService)
+                    Services.AddSingleton(classType);
+            }
+        }
+
+        private static void LoadHelpCommandFromClass(Type classType, ref HelpCommandInitializationInfo helpCommandInitializationInfo, ref bool registerClassAsService)
+        {
+            if (!typeof(IHelpCommand).IsAssignableFrom(classType) &&
+                !typeof(IHelpCommandAsync).IsAssignableFrom(classType))
+                return;
+
+            if (helpCommandInitializationInfo.HelpCommand is not null)
+                throw new MultipleCommandsDefinedException($"Multiple HelpCommand classes found.");
+
+            helpCommandInitializationInfo.HelpCommand = classType;
+            registerClassAsService = true;
+        }
+
+        private void LoadCommandsFromClass(
+            Assembly assembly,
+            Type classType,
+            bool loadHelpCommandInitializationInfo,
+            bool loadCommonCommands,
+            string? command,
+            ref HelpCommandInitializationInfo helpCommandInitializationInfo,
+            ref bool registerClassAsService,
+            List<(MethodInfo, CommandAttribute)> commandMethods)
+        {
+            foreach (var method in classType.GetMethods())
+            {
+                var commandsAttributes = method.GetCustomAttributes(inherit: true)
+                    .OfType<CommandAttribute>()
+                    .Where(ca => loadHelpCommandInitializationInfo ||
+                                 command is null ||
+                                 ca.Commands.Contains(command, StringComparer.OrdinalIgnoreCase));
+                if (!commandsAttributes.Any())
+                    continue;
+                if (command is not null)
                 {
-                    Services.AddSingleton(assemblyClass);
+                    if (commandMethods.Count > 0)
+                        throw new MultipleCommandsDefinedException(
+                            $"Multiple commands found for '{command}' in assembly '{assembly.FullName}'.");
+                    if (commandsAttributes.Count() > 1)
+                        throw new MultipleCommandsDefinedException(
+                            $"Multiple commands found for '{command}' in method '{method.Name}' of class '{classType.FullName}'.");
+                }
+
+                if (loadHelpCommandInitializationInfo)
+                    helpCommandInitializationInfo.HelpCommandParameter
+                        .AddRange(commandsAttributes
+                                    .Where(ca => !ca.Hide)
+                                    .Select(CommandInfo.GetInfo)
+                            );
+
+                if (loadCommonCommands)
+                {
+                    registerClassAsService = true;
+                    commandMethods.AddRange(commandsAttributes
+                        .Where(ca => command is null ||
+                                     ca.Commands.Contains(command, StringComparer.OrdinalIgnoreCase))
+                        .Select(ca => (method, ca))
+                    );
+                    if (command is not null)
+                    {
+                        var commandAttributeType = commandsAttributes
+                            .Single()
+                            .GetType();
+                        if (commandAttributeType.IsGenericType)
+                        {
+                            var argsBuilderType = commandAttributeType
+                                .GetGenericArguments()
+                                .FirstOrDefault()
+                                ?? throw new InvalidOperationException($"ArgsBuilder type not found in CommandAttribute for command '{command}'.");
+                            Services.AddSingleton(argsBuilderType);
+                        }
+                    }
                 }
             }
         }

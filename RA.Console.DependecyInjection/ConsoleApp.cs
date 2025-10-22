@@ -2,7 +2,9 @@
 using RA.Console.DependecyInjection.Args;
 using RA.Console.DependecyInjection.Attributes;
 using RA.Console.DependecyInjection.HelpCommand;
+using RA.Console.DependecyInjection.Middleware;
 using System.Reflection;
+using System.Threading;
 
 namespace RA.Console.DependecyInjection
 {
@@ -14,6 +16,7 @@ namespace RA.Console.DependecyInjection
         private HelpCommandInitializationInfo? HelpCommandInitializationInfo { get; }
         private IDictionary<string, (MethodInfo, CommandAttribute)> Commands { get; }
         public IServiceProvider Services { get; }
+        public IEnumerable<ICommandMiddleware> Middlewares => Services.GetServices<ICommandMiddleware>();
 
         internal ConsoleApp(ConsoleAppStartInfo startInfo)
         {
@@ -28,14 +31,21 @@ namespace RA.Console.DependecyInjection
 
         public async Task<int> RunAsync(CancellationToken cancellationToken = default)
         {
-            Current = this;
-            if (StartWithHelpCommand)
-                return await RunHelpCommandAsync(cancellationToken);
+            try
+            {
+                Current = this;
+                if (StartWithHelpCommand)
+                    return await RunHelpCommandAsync(StartArgs, cancellationToken);
 
-            if (StartCommand is null)
-                throw new InvalidOperationException("Command is not defined.");
+                if (StartCommand is null)
+                    throw new InvalidOperationException("Command is not defined.");
 
-            return await RunCommandAsync(StartCommand, StartArgs, cancellationToken);
+                return await RunCommandAsync(StartCommand, StartArgs, cancellationToken);
+            }
+            finally
+            {
+                Current = null;
+            }
         }
 
         public async Task<int> RunCommandAsync(string command, string[] args, CancellationToken cancellationToken = default)
@@ -44,18 +54,59 @@ namespace RA.Console.DependecyInjection
                 ? methodPair
                 : throw new InvalidOperationException($"Command '{command}' not found.");
 
-            var parameters = await BuildParametersAsync(commandMethod, commandAttribute, args, cancellationToken);
-            var commandHandler = Services.GetRequiredService(commandMethod.DeclaringType!);
+            var context = new CommandContext
+            {
+                Command = command,
+                IsHelpCommand = false,
+                Args = args,
+                CommandAttribute = commandAttribute,
+                CommandClass = commandMethod.DeclaringType!,
+                CommandMethod = commandMethod,
+                ArgsBuilder = GetArgsBuilderType(commandAttribute, commandMethod.Name),
+                CancellationToken = cancellationToken
+            };
 
-            if (typeof(CommandAsyncAttribute).IsAssignableFrom(commandAttribute.GetType()))
-                return await (Task<int>)commandMethod.Invoke(commandHandler, parameters);
-            else if (typeof(CommandAttribute).IsAssignableFrom(commandAttribute.GetType()))
-                return (int)commandMethod.Invoke(commandHandler, parameters);
-            else
-                throw new InvalidOperationException($"Command attribute for command '{command}' is of an unknown type.");
+            var middlewareEnumerator = Middlewares.GetEnumerator();
+            return await RunNextMiddlewareOrExecuteCommand(context, middlewareEnumerator);
         }
 
-        public async Task<int> RunHelpCommandAsync(CancellationToken cancellationToken = default)
+        private async Task<int> RunNextMiddlewareOrExecuteCommand(CommandContext ctx, IEnumerator<ICommandMiddleware> middlewareEnumerator)
+        {
+            if (middlewareEnumerator.MoveNext())
+            {
+                var middleware = middlewareEnumerator.Current;
+                int result = 0;
+                await middleware.InvokeAsync(ctx, async (c) => { result = await RunNextMiddlewareOrExecuteCommand(c, middlewareEnumerator); });
+                return result;
+            }
+
+            return await ExecuteCommandFromContext(ctx);
+        }
+
+        private async Task<int> ExecuteCommandFromContext(CommandContext context)
+        {
+            var commandHandler = Services.GetRequiredService(context.CommandClass);
+            if (context.IsHelpCommand)
+            {
+                var commandsInfo = HelpCommandInitializationInfo!.Value.HelpCommandParameter;
+                if (commandHandler is IHelpCommand helpCommand)
+                    return helpCommand.Execute(commandsInfo);
+                else if (commandHandler is IHelpCommandAsync helpCommandAsync)
+                    return await helpCommandAsync.ExecuteAsync(commandsInfo, context.CancellationToken);
+                else
+                    throw new InvalidOperationException("Help command does not implement a valid interface.");
+            }
+
+            var parameters = await BuildParametersAsync(context.CommandMethod, context.CommandAttribute, context.Args, context.CancellationToken);
+            if (typeof(CommandAsyncAttribute).IsAssignableFrom(context.CommandAttribute.GetType()))
+                return await (Task<int>)context.CommandMethod.Invoke(commandHandler, parameters);
+            else if (typeof(CommandAttribute).IsAssignableFrom(context.CommandAttribute.GetType()))
+                return (int)context.CommandMethod.Invoke(commandHandler, parameters);
+            else
+                throw new InvalidOperationException($"Command attribute for command '{context.Command}' is of an unknown type.");
+        }
+
+        public async Task<int> RunHelpCommandAsync(string[] args, CancellationToken cancellationToken = default)
         {
             if (HelpCommandInitializationInfo == null)
                 throw new InvalidOperationException("Help command initialization info is not defined.");
@@ -64,13 +115,18 @@ namespace RA.Console.DependecyInjection
             if (helpCommandInitializationInfo.HelpCommand == null)
                 throw new InvalidOperationException("Help command is not defined.");
 
-            var helpCommandObject = Services.GetRequiredService(helpCommandInitializationInfo.HelpCommand);
-            if (helpCommandObject is IHelpCommand helpCommand)
-                return helpCommand.Execute(helpCommandInitializationInfo.HelpCommandParameter);
-            else if (helpCommandObject is IHelpCommandAsync helpCommandAsync)
-                return await helpCommandAsync.ExecuteAsync(helpCommandInitializationInfo.HelpCommandParameter, cancellationToken);
-            else
-                throw new InvalidOperationException("Help command does not implement a valid interface.");
+            var context = new CommandContext
+            {
+                IsHelpCommand = true,
+                Args = args,
+                CommandClass = helpCommandInitializationInfo.HelpCommand,
+                CommandMethod = null,
+                ArgsBuilder = null,
+                CancellationToken = cancellationToken
+            };
+
+            var middlewareEnumerator = Middlewares.GetEnumerator();
+            return await RunNextMiddlewareOrExecuteCommand(context, middlewareEnumerator);
         }
 
         private async Task<object?[]> BuildParametersAsync(MethodInfo methodInfo, CommandAttribute commandAttribute, string[] args, CancellationToken cancellationToken)
@@ -118,7 +174,15 @@ namespace RA.Console.DependecyInjection
 
         private object? InitializaArgsBuilder(CommandAttribute commandAttribute, string methodName)
         {
-            object? argsBuilderObject = null;
+            var argsBuilderType = GetArgsBuilderType(commandAttribute, methodName);
+            if (argsBuilderType == null)
+                return null;
+
+            return Services.GetRequiredService(argsBuilderType);
+        }
+
+        private static Type? GetArgsBuilderType(CommandAttribute commandAttribute, string methodName)
+        {
             var commandAttributeType = commandAttribute.GetType();
             if (commandAttributeType.IsGenericType)
             {
@@ -126,9 +190,9 @@ namespace RA.Console.DependecyInjection
                     .GetGenericArguments()
                     .FirstOrDefault()
                     ?? throw new InvalidOperationException($"ArgsBuilder type not found in CommandAttribute for command '{methodName}'.");
-                argsBuilderObject = Services.GetRequiredService(argsBuilderType);
+                return argsBuilderType;
             }
-            return argsBuilderObject;
+            return null;
         }
 
         private static object? GetParameterValue(ParameterInfo parameter, IDictionary<string, object> methodArgs, string methodName)
@@ -213,6 +277,9 @@ namespace RA.Console.DependecyInjection
             {
                 lock (_lock)
                 {
+                    if (field == value)
+                        return;
+
                     if (field is not null)
                         throw new InvalidOperationException("A ConsoleApp instance is already running.");
 
