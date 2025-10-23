@@ -2,6 +2,6 @@
 {
     public interface ICommandMiddleware
     {
-        Task InvokeAsync(CommandContext context, Func<CommandContext, Task> next);
+        Task<int> InvokeAsync(CommandContext context, Func<CommandContext, Task<int>> next);
     }
 }

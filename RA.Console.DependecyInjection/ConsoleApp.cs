@@ -3,6 +3,7 @@ using RA.Console.DependecyInjection.Args;
 using RA.Console.DependecyInjection.Attributes;
 using RA.Console.DependecyInjection.HelpCommand;
 using RA.Console.DependecyInjection.Middleware;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Threading;
 
@@ -75,9 +76,7 @@ namespace RA.Console.DependecyInjection
             if (middlewareEnumerator.MoveNext())
             {
                 var middleware = middlewareEnumerator.Current;
-                int result = 0;
-                await middleware.InvokeAsync(ctx, async (c) => { result = await RunNextMiddlewareOrExecuteCommand(c, middlewareEnumerator); });
-                return result;
+                return await middleware.InvokeAsync(ctx, async (c) => await RunNextMiddlewareOrExecuteCommand(c, middlewareEnumerator));
             }
 
             return await ExecuteCommandFromContext(ctx);
