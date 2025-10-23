@@ -113,7 +113,7 @@ namespace RA.Console.DependecyInjection
         #endregion
 
         #region Registers
-        public ConsoleAppBuilder UserMiddleware<T>() where T : class, ICommandMiddleware
+        public ConsoleAppBuilder UseMiddleware<T>() where T : class, ICommandMiddleware
         {
             Services.AddSingleton<ICommandMiddleware, T>();
             return this;
