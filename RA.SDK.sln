@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11111.16 d18.0
+VisualStudioVersion = 18.0.11111.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RA.Utilities", "RA.Utilities\RA.Utilities.csproj", "{6089E5D3-25DB-4529-911D-6ED8ADC79935}"
 EndProject
@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RA.Utilities.Test", "RA.Uti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RA.Utilities.Windows", "RA.Utilities.Windows\RA.Utilities.Windows.csproj", "{AE2F552C-1039-4BCB-931F-85BA195FB567}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RA.Console.DependecyInjection", "RA.Console.DependecyInjection\RA.Console.DependecyInjection.csproj", "{A1E41DA0-0684-4631-B9C9-A23B5468B389}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RA.Console.DependencyInjection", "RA.Console.DependencyInjection\RA.Console.DependencyInjection.csproj", "{A1E41DA0-0684-4631-B9C9-A23B5468B389}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
