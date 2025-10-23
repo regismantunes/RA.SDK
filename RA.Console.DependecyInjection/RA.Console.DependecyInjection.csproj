@@ -5,11 +5,12 @@
 	<Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-	<Version>0.2.3</Version>
+	<Version>0.2.4</Version>
 	<Authors>Regis Antunes</Authors>
 	<Description>Dependecy Injection package to console applications</Description>
 	<PackageReleaseNotes>Implemented middlewares.
-	Changed middlewares to return int to improve errors treatment.</PackageReleaseNotes>
+	Changed middlewares to return int to improve errors treatment.
+	Bug fixes.</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Console.DependecyInjection</PackageId>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>

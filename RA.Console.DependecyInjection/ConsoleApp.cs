@@ -279,7 +279,8 @@ namespace RA.Console.DependecyInjection
                     if (field == value)
                         return;
 
-                    if (field is not null)
+                    if (field is not null &&
+                        value is not null)
                         throw new InvalidOperationException("A ConsoleApp instance is already running.");
 
                     field = value;
