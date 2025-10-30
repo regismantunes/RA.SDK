@@ -5,14 +5,17 @@
 	<Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-	<Version>0.2.6</Version>
+	<Version>0.2.7</Version>
 	<Authors>Regis Antunes</Authors>
 	<Description>Dependecy Injection package to console applications</Description>
-	<PackageReleaseNotes>Implemented middlewares.
-	Changed middlewares to return int to improve errors treatment.
-	Bug fixes.
-	Fixed package name typo.
-	Improved DefaultHelpCommand to break description line when greater then console window.</PackageReleaseNotes>
+	<PackageReleaseNotes>
+		Implemented middlewares.
+		Changed middlewares to return int to improve errors treatment.
+		Bug fixes.
+		Fixed package name typo.
+		Improved DefaultHelpCommand to break description line when greater then console window.
+		Created classes, methods and properties comments to facilitate the package usage.
+	</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Console.DependencyInjection</PackageId>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
