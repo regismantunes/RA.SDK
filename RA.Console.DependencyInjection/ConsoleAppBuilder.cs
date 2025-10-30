@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using RA.Console.DependencyInjection.Args;
 using RA.Console.DependencyInjection.Attributes;
 using RA.Console.DependencyInjection.HelpCommand;
@@ -7,9 +7,17 @@ using System.Reflection;
 
 namespace RA.Console.DependencyInjection
 {
+    /// <summary>
+    /// Builder for configuring and creating a console application with dependency injection, commands, help, and middleware.
+    /// </summary>
+    /// <param name="args">The command-line arguments used for initialization and defaults.</param>
     public class ConsoleAppBuilder(string[]? args)
     {
         private readonly string[] _args = args ?? [];
+
+        /// <summary>
+        /// The service collection used to register dependencies for the console application.
+        /// </summary>
         public IServiceCollection Services { get; } = new ServiceCollection();
         
         #region Assemblies
@@ -23,6 +31,11 @@ namespace RA.Console.DependencyInjection
 
         private IList<AssemblyOptions> Assemblies { get; } = [];
         
+        /// <summary>
+        /// Adds an assembly to scan for help command, commands, middlewares, and services.
+        /// </summary>
+        /// <param name="assembly">The target assembly.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddAssembly(Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
@@ -36,9 +49,19 @@ namespace RA.Console.DependencyInjection
             return this;
         }
 
+        /// <summary>
+        /// Adds the assembly of <typeparamref name="T"/> to scan for components.
+        /// </summary>
+        /// <typeparam name="T">A type from the target assembly.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddAssembly<T>()
             => AddAssembly(typeof(T).Assembly);
 
+        /// <summary>
+        /// Adds multiple assemblies to scan for components.
+        /// </summary>
+        /// <param name="assemblies">Assemblies to be scanned.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddAssemblies(params IEnumerable<Assembly> assemblies)
         {
             ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
@@ -47,6 +70,11 @@ namespace RA.Console.DependencyInjection
             return this;
         }
 
+        /// <summary>
+        /// Adds an assembly from which to load only the help command.
+        /// </summary>
+        /// <param name="assembly">The target assembly.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddHelpCommandFromAssembly(Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
@@ -60,6 +88,11 @@ namespace RA.Console.DependencyInjection
             return this;
         }
 
+        /// <summary>
+        /// Adds an assembly from which to load commands and middlewares.
+        /// </summary>
+        /// <param name="assembly">The target assembly.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddCommandsFromAssembly(Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
@@ -73,6 +106,11 @@ namespace RA.Console.DependencyInjection
             return this;
         }
 
+        /// <summary>
+        /// Adds an assembly from which to load middlewares only.
+        /// </summary>
+        /// <param name="assembly">The target assembly.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddMiddlewaresFromAssembly(Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly, nameof(assembly));
@@ -86,15 +124,35 @@ namespace RA.Console.DependencyInjection
             return this;
         }
 
+        /// <summary>
+        /// Adds the assembly of <typeparamref name="T"/> to load only the help command.
+        /// </summary>
+        /// <typeparam name="T">A type from the target assembly.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddHelpCommandFromAssembly<T>()
             => AddHelpCommandFromAssembly(typeof(T).Assembly);
 
+        /// <summary>
+        /// Adds the assembly of <typeparamref name="T"/> to load commands and middlewares.
+        /// </summary>
+        /// <typeparam name="T">A type from the target assembly.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddCommandsFromAssembly<T>()
             => AddCommandsFromAssembly(typeof(T).Assembly);
 
+        /// <summary>
+        /// Adds the assembly of <typeparamref name="T"/> to load middlewares only.
+        /// </summary>
+        /// <typeparam name="T">A type from the target assembly.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddMiddlewaresFromAssembly<T>()
             => AddMiddlewaresFromAssembly(typeof(T).Assembly);
 
+        /// <summary>
+        /// Adds multiple assemblies from which to load commands and middlewares.
+        /// </summary>
+        /// <param name="assemblies">Assemblies to scan.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddCommandsFromAssemblies(params IEnumerable<Assembly> assemblies)
         {
             ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
@@ -103,6 +161,11 @@ namespace RA.Console.DependencyInjection
             return this;
         }
 
+        /// <summary>
+        /// Adds multiple assemblies from which to load middlewares.
+        /// </summary>
+        /// <param name="assemblies">Assemblies to scan.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder AddMiddlewaresFromAssemblies(params IEnumerable<Assembly> assemblies)
         {
             ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
@@ -113,12 +176,22 @@ namespace RA.Console.DependencyInjection
         #endregion
 
         #region Registers
+        /// <summary>
+        /// Registers a middleware of type <typeparamref name="T"/> as a singleton.
+        /// </summary>
+        /// <typeparam name="T">The middleware type.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseMiddleware<T>() where T : class, ICommandMiddleware
         {
             Services.AddSingleton<ICommandMiddleware, T>();
             return this;
         }
 
+        /// <summary>
+        /// Registers a middleware instance as a singleton.
+        /// </summary>
+        /// <param name="middleware">The middleware instance.</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseMeddleware(ICommandMiddleware middleware)
         {
             Services.AddSingleton(middleware);
@@ -130,6 +203,10 @@ namespace RA.Console.DependencyInjection
 
         private bool OptimizedInitialization { get; set; }
 
+        /// <summary>
+        /// Enables optimized initialization to load only resources necessary for the requested command.
+        /// </summary>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseOptimizedInitialization()
         {
             OptimizedInitialization = true;
@@ -143,18 +220,31 @@ namespace RA.Console.DependencyInjection
         private bool EmptyArgsForHelp { get; set; }
         private Type? HelpCommand { get; set; }
         
+        /// <summary>
+        /// Sets the list of tokens that trigger the help command.
+        /// </summary>
+        /// <param name="helpCommands">Help command tokens (e.g., -h, --help).</param>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder SetHelpCommands(params IEnumerable<string> helpCommands)
         {
             HelpCommands = helpCommands;
             return this;
         }
 
+        /// <summary>
+        /// Uses the default help command tokens: -h, --help, /?, help.
+        /// </summary>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseDefaultHelpCommands()
         {
             HelpCommands = ["-h", "--help", "/?", "help"];
             return this;
         }
 
+        /// <summary>
+        /// Treats empty arguments as a request for help.
+        /// </summary>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseEmptyArgsForHelp()
         {
             EmptyArgsForHelp = true;
@@ -169,24 +259,42 @@ namespace RA.Console.DependencyInjection
             return HelpCommands.Contains(_args[0], StringComparer.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// Sets the help command implementation.
+        /// </summary>
+        /// <typeparam name="T">The help command type.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder SetHelpCommand<T>() where T : IHelpCommand
         {
             HelpCommand = typeof(T);
             return this;
         }
 
+        /// <summary>
+        /// Sets the asynchronous help command implementation.
+        /// </summary>
+        /// <typeparam name="T">The async help command type.</typeparam>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder SetHelpCommandAsync<T>() where T : IHelpCommandAsync
         {
             HelpCommand = typeof(T);
             return this;
         }
 
+        /// <summary>
+        /// Uses the built-in default help command implementation.
+        /// </summary>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseDefaultHelpCommand()
         {
             HelpCommand = typeof(DefaultHelpCommand);
             return this;
         }
 
+        /// <summary>
+        /// Configures default help tokens, empty-args behavior, and help command implementation.
+        /// </summary>
+        /// <returns>The current builder instance.</returns>
         public ConsoleAppBuilder UseDefaultHelpResources()
             => UseDefaultHelpCommands()
                 .UseEmptyArgsForHelp()
@@ -195,6 +303,10 @@ namespace RA.Console.DependencyInjection
         #endregion
 
         #region Build
+        /// <summary>
+        /// Builds and returns an <see cref="IConsoleApp"/> with the configured services and commands.
+        /// </summary>
+        /// <returns>The configured console app.</returns>
         public IConsoleApp Build()
         {
             var requestedCommand = _args.Length > 0 ? _args[0] : null;

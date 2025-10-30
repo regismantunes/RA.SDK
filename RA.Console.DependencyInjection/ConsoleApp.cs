@@ -1,14 +1,15 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using RA.Console.DependencyInjection.Args;
 using RA.Console.DependencyInjection.Attributes;
 using RA.Console.DependencyInjection.HelpCommand;
 using RA.Console.DependencyInjection.Middleware;
-using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using System.Threading;
 
 namespace RA.Console.DependencyInjection
 {
+    /// <summary>
+    /// Main console application class that orchestrates command execution with dependency injection.
+    /// </summary>
     public class ConsoleApp : IConsoleApp
     {
         private string? StartCommand { get; }
@@ -16,7 +17,15 @@ namespace RA.Console.DependencyInjection
         private bool StartWithHelpCommand { get; }
         private HelpCommandInitializationInfo? HelpCommandInitializationInfo { get; }
         private IDictionary<string, (MethodInfo, CommandAttribute)> Commands { get; }
+
+        /// <summary>
+        /// The application's <see cref="IServiceProvider"/> used to resolve command handlers and services.
+        /// </summary>
         public IServiceProvider Services { get; }
+        
+        /// <summary>
+        /// The set of registered command middlewares resolved from <see cref="Services"/>.
+        /// </summary>
         public IEnumerable<ICommandMiddleware> Middlewares => Services.GetServices<ICommandMiddleware>();
 
         internal ConsoleApp(ConsoleAppStartInfo startInfo)
@@ -30,6 +39,11 @@ namespace RA.Console.DependencyInjection
             Services = startInfo.ServiceProvider;
         }
 
+        /// <summary>
+        /// Runs the console application with the arguments at initialization.
+        /// </summary>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the exit code of the application.</returns>
         public async Task<int> RunAsync(CancellationToken cancellationToken = default)
         {
             try
@@ -49,6 +63,13 @@ namespace RA.Console.DependencyInjection
             }
         }
 
+        /// <summary>
+        /// Runs a specific command with the provided arguments.
+        /// </summary>
+        /// <param name="command">The command name to execute.</param>
+        /// <param name="args">The command arguments. This need be as passed by the application, which includes the command.</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+        /// <returns>A task that resolves to the command's exit code.</returns>
         public async Task<int> RunCommandAsync(string command, string[] args, CancellationToken cancellationToken = default)
         {
             (var commandMethod, var commandAttribute) = Commands.TryGetValue(command, out var methodPair)
@@ -105,6 +126,12 @@ namespace RA.Console.DependencyInjection
                 throw new InvalidOperationException($"Command attribute for command '{context.Command}' is of an unknown type.");
         }
 
+        /// <summary>
+        /// Runs the configured help command with the provided arguments.
+        /// </summary>
+        /// <param name="args">The help command arguments.</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+        /// <returns>A task that resolves to the help command's exit code.</returns>
         public async Task<int> RunHelpCommandAsync(string[] args, CancellationToken cancellationToken = default)
         {
             if (HelpCommandInitializationInfo == null)
@@ -269,6 +296,10 @@ namespace RA.Console.DependencyInjection
         }*/
 
         private static readonly Lock _lock = new();
+
+        /// <summary>
+        /// Gets the currently running <see cref="ConsoleApp"/> instance, if any.
+        /// </summary>
         public static ConsoleApp? Current
         {
             get;

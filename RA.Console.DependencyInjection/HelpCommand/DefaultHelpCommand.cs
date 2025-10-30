@@ -1,7 +1,15 @@
-﻿namespace RA.Console.DependencyInjection.HelpCommand
+namespace RA.Console.DependencyInjection.HelpCommand
 {
+    /// <summary>
+    /// Default implementation of <see cref="IHelpCommand"/> that writes help information to the console.
+    /// </summary>
     public class DefaultHelpCommand : IHelpCommand
     {
+        /// <summary>
+        /// Renders help text to the console for the provided commands.
+        /// </summary>
+        /// <param name="commands">The collection of command metadata to display.</param>
+        /// <returns>The exit code.</returns>
         public int Execute(IEnumerable<CommandInfo> commands)
         {
             System.Console.WriteLine("Usage:");
