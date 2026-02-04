@@ -240,7 +240,9 @@ namespace RA.Console.DependencyInjection
             {
                 if (parameter.HasDefaultValue)
                     parameterValue = parameter.DefaultValue;
-                else if (parameter.IsOptional)
+                else if (parameter.IsOptional ||
+                    !parameter.ParameterType.IsValueType ||
+                    Nullable.GetUnderlyingType(parameter.ParameterType) is not null)
                     parameterValue = null;
                 else
                     throw new ArgumentException(

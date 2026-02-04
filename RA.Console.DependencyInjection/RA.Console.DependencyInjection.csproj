@@ -5,7 +5,7 @@
 	<Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-	<Version>0.2.7</Version>
+	<Version>0.2.8</Version>
 	<Authors>Regis Antunes</Authors>
 	<Description>Dependecy Injection package to console applications</Description>
 	<PackageReleaseNotes>
@@ -15,6 +15,7 @@
 		Fixed package name typo.
 		Improved DefaultHelpCommand to break description line when greater then console window.
 		Created classes, methods and properties comments to facilitate the package usage.
+		Changed the parameter builder to send null vaule if there is no value and it accept null.
 	</PackageReleaseNotes>
 	<PackageId>RegisAntunes.Console.DependencyInjection</PackageId>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
