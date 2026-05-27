@@ -7,6 +7,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
+using System.DirectoryServices.AccountManagement;
 
 namespace RA.Utilities.Windows.Folder
 {
@@ -101,6 +102,8 @@ namespace RA.Utilities.Windows.Folder
             var countTask = 0;
             var userSidForFiles = Options!.SecurityOptionsForFiles?.UserSID ?? Identity.GetCurrentSID();
             var userSidForDirectories = Options.SecurityOptionsForDirectories?.UserSID ?? Identity.GetCurrentSID();
+            var windowsPrincipalForFiles = CreateWindowsPrincipal(userSidForFiles);
+            var windowsPrincipalForDirectories = CreateWindowsPrincipal(userSidForDirectories);
             var enumerationOptionsForFiles = new EnumerationOptions
             {
                 RecurseSubdirectories = false,
@@ -130,7 +133,7 @@ namespace RA.Utilities.Windows.Folder
                     includeFolder = RulesAreApplyed(
                         new DirectoryInfo(path).GetAccessControl(),
                         Options.SecurityOptionsForDirectories,
-                        userSidForDirectories)
+                        windowsPrincipalForDirectories)
                 , path);
                 
                 if (!includeFolder)
@@ -149,7 +152,7 @@ namespace RA.Utilities.Windows.Folder
                             if (RulesAreApplyed(
                                 new FileInfo(file).GetAccessControl(),
                                 Options.SecurityOptionsForFiles,
-                                userSidForFiles))
+                                windowsPrincipalForFiles))
                                 _onFind!(file);
                         }, file);
                     }
@@ -184,7 +187,17 @@ namespace RA.Utilities.Windows.Folder
             await semaphore.WaitAsync();
         }
 
-        private static bool RulesAreApplyed(CommonObjectSecurity objectSecurity, SecurityOptions? securityOptions, string userSid)
+        private static WindowsPrincipal CreateWindowsPrincipal(string sid)
+        {
+            var currentIdentity = WindowsIdentity.GetCurrent();
+            if (currentIdentity.User?.Value == sid)
+                return new WindowsPrincipal(currentIdentity);
+
+            var ntAccount = (NTAccount)new SecurityIdentifier(sid).Translate(typeof(NTAccount));
+            return new WindowsPrincipal(new WindowsIdentity(ntAccount.Value));
+        }
+
+        private static bool RulesAreApplyed(CommonObjectSecurity objectSecurity, SecurityOptions? securityOptions, WindowsPrincipal windowsPrincipal)
         {
             if (securityOptions is null)
                 return true;
@@ -192,7 +205,7 @@ namespace RA.Utilities.Windows.Folder
             var rules = objectSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
             foreach (FileSystemAccessRule rule in rules)
             {
-                if (rule.IdentityReference.Value != userSid)
+                if (!windowsPrincipal.IsInRole((SecurityIdentifier)rule.IdentityReference))
                     continue;
 
                 if (securityOptions.FileSystemRights.HasValue &&
